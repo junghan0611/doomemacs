@@ -43,7 +43,10 @@
                       #'yas-expand
                       (and (bound-and-true-p company-mode)
                            (modulep! :completion company +tng))
-                      #'company-indent-or-complete-common)
+                      #'company-indent-or-complete-common
+                      (and (bound-and-true-p corfu-mode)
+                           (modulep! :completion corfu +tng))
+                      #'completion-at-point)
       :m [tab] (cmds! (and (modulep! :editor snippets)
                            (evil-visual-state-p)
                            (or (eq evil-visual-selection 'line)
@@ -127,7 +130,7 @@
 ;;
 ;;; Module keybinds
 
-;;; :completion
+;;; :completion (in-buffer)
 (map! (:when (modulep! :completion company)
        :i "C-@"    (cmds! (not (minibufferp)) #'company-complete-common)
        :i "C-SPC"  (cmds! (not (minibufferp)) #'company-complete-common)
@@ -156,7 +159,39 @@
          "C-s"     #'company-filter-candidates
          [escape]  #'company-search-abort)))
 
-      (:when (modulep! :completion ivy)
+      (:when (modulep! :completion corfu)
+       (:after corfu
+        (:map corfu-mode-map
+         :e "C-M-i" #'completion-at-point
+         (:prefix "C-x"
+          :i "C-l" #'cape-line
+          :i "C-k" #'cape-keyword
+          :i "C-f" #'cape-file
+          :i "s"   #'cape-dict
+          :i "C-s" #'yasnippet-capf
+          :i "C-n" #'cape-dabbrev
+          :i "C-p" #'cape-history)
+         (:unless (modulep! :completion corfu +tng)
+          :i "C-SPC" #'completion-at-point
+          :n "C-SPC" (cmd! (call-interactively #'evil-insert-state)
+                           (call-interactively #'completion-at-point))
+          :v "C-SPC" (cmd! (call-interactively #'evil-change)
+                           (call-interactively #'completion-at-point))))
+        (:map corfu-map
+          "C-u" (cmd! (let (corfu-cycle)
+                        (funcall-interactively #'corfu-next (- corfu-count))))
+          "C-d" (cmd! (let (corfu-cycle)
+                        (funcall-interactively #'corfu-next corfu-count)))))
+       (:after corfu-popupinfo
+        :map corfu-popupinfo-map
+        ;; Reversed because popupinfo assumes opposite of what feels intuitive
+        ;; with evil.
+        "C-S-k" #'corfu-popupinfo-scroll-down
+        "C-S-j" #'corfu-popupinfo-scroll-up
+        "C-h"   #'corfu-popupinfo-toggle)))
+
+;;; :completion (separate)
+(map! (:when (modulep! :completion ivy)
        (:after ivy
         :map ivy-minibuffer-map
         "C-SPC" #'ivy-call-and-recenter  ; preview file
@@ -169,7 +204,8 @@
         [C-return] #'+ivy/git-grep-other-window-action))
 
       (:when (modulep! :completion helm)
-       (:after helm :map helm-map
+       (:after helm
+        :map helm-map
         [remap next-line]     #'helm-next-line
         [remap previous-line] #'helm-previous-line
         [left]     #'left-char

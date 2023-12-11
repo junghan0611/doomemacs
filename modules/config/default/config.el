@@ -458,6 +458,39 @@ Continues comments if executed from a commented line. Consults
                          '(evil-ex-completion-map)))
       "C-s" command))
 
+  (map! :when (modulep! :completion corfu)
+        :after corfu
+        (:map corfu-map
+         [return] #'corfu-insert
+         "RET" #'corfu-insert
+         "C-S-s" #'+corfu-move-to-minibuffer
+         "C-p" #'corfu-previous
+         "C-n" #'corfu-next
+         (:when (modulep! :completion corfu +orderless)
+          [remap completion-at-point] #'+corfu-smart-sep-toggle-escape)
+         (:when (modulep! :completion corfu +tng)
+          [tab] #'corfu-next
+          "TAB" #'corfu-next
+          [backtab] #'corfu-previous
+          "S-TAB" #'corfu-previous))
+        (:after corfu-popupinfo
+         :map corfu-popupinfo-map
+         "C-<up>" #'corfu-popupinfo-scroll-down
+         "C-<down>" #'corfu-popupinfo-scroll-up
+         "C-S-p" #'corfu-popupinfo-scroll-down
+         "C-S-n" #'corfu-popupinfo-scroll-up
+         "C-S-u" (cmd! (funcall-interactively #'corfu-popupinfo-scroll-down corfu-popupinfo-min-height))
+         "C-S-d" (cmd! (funcall-interactively #'corfu-popupinfo-scroll-up corfu-popupinfo-min-height))))
+
+  (when-let ((cmds-del (and (modulep! :completion corfu +tng)
+                            '(menu-item "Reset completion" corfu-reset
+                              :enable (and (> corfu--index -1)
+                                           (eq corfu-preview-current 'insert))))))
+    (map! :after corfu
+          :map corfu-map
+          [backspace] cmds-del
+          "DEL" cmds-del))
+
   ;; Smarter C-a/C-e for both Emacs and Evil. C-a will jump to indentation.
   ;; Pressing it again will send you to the true bol. Same goes for C-e, except
   ;; it will ignore comments+trailing whitespace before jumping to eol.
