@@ -144,12 +144,11 @@ regarding your state. In normal-like states, enter insert then start corfu; in
 visual-like states, perform [[help:evil-change][evil-change]] (which leaves you in insert state) then
 start corfu; in insert-like states, start corfu immediatelly.
 
-** Exporting to the minibuffer (requires [[doom-module::completion vertico]])
-When using the [[doom-module::completion vertico]] module, which pulls in the
-[[doom-package:consult]] package, the entries shown in the completion popup can be
-exported to a consult minibuffer, giving access to all the manipulations the
-Vertico suite allows. For instance, one could use this to export with
-[[doom-package:embark]] via [[kbd:][C-c C-l]] and get a buffer with all candidates.
+** Exporting to the minibuffer
+The entries shown in the completion popup can be exported to a ~completing-read~
+minibuffer, giving access to all the manipulations that suite allows. Using
+Vertico for instance, one could use this to export with [[doom-package:embark]] via
+[[kbd:][C-c C-l]] and get a buffer with all candidates.
 
 ** Manually call generic CAPFs
 Completion at point functions have the property that, when called interactively
