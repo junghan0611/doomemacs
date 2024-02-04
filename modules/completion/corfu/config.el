@@ -32,6 +32,8 @@
         tab-always-indent (if (modulep! +tng) 'complete tab-always-indent))
   (add-to-list 'completion-category-overrides `(lsp-capf (styles ,@completion-styles)))
 
+  (add-to-list 'corfu-continue-commands #'+corfu-move-to-minibuffer)
+
   (add-hook! 'minibuffer-setup-hook
     (defun +corfu-enable-in-minibuffer ()
       "Enable Corfu in the minibuffer if `completion-at-point' is bound."

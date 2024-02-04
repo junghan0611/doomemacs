@@ -24,6 +24,7 @@ Can be negative.")
 (use-package! helm-mode
   :hook (doom-first-input . helm-mode)
   :config
+  (advice-add #'completion--in-region :around #'helm--completion-in-region)
   ;; helm is too heavy for `find-file-at-point'
   (add-to-list 'helm-completing-read-handlers-alist (cons #'find-file-at-point nil)))
 
