@@ -465,51 +465,36 @@ Continues comments if executed from a commented line. Consults
          "C-p" #'corfu-previous
          "C-n" #'corfu-next
          (:when (modulep! :completion corfu +orderless)
-          [remap completion-at-point] #'+corfu-smart-sep-toggle-escape)
-         (:when (modulep! :completion corfu +tng)
-          :gi [tab] #'corfu-next
-          :gi "TAB" #'corfu-next
-          :gi [backtab] #'corfu-previous
-          :gi "S-TAB" #'corfu-previous))
-        (:after corfu-popupinfo
-         :map corfu-popupinfo-map
-         "C-<up>" #'corfu-popupinfo-scroll-down
-         "C-<down>" #'corfu-popupinfo-scroll-up
-         "C-S-p" #'corfu-popupinfo-scroll-down
-         "C-S-n" #'corfu-popupinfo-scroll-up
-         "C-S-u" (cmd! (funcall-interactively #'corfu-popupinfo-scroll-down corfu-popupinfo-min-height))
-         "C-S-d" (cmd! (funcall-interactively #'corfu-popupinfo-scroll-up corfu-popupinfo-min-height)))
-        (:when (not (modulep! :completion corfu +tng))
-         (:map corfu-map
-          "C-<return>" `(menu-item "Conclude the minibuffer" exit-minibuffer
-                         :filter ,(lambda (cmd) (when (minibufferp nil t) cmd)))
-          "S-<return>" `(menu-item "Insert completion and conclude"
-                         +corfu-complete-and-exit-minibuffer
-                         :filter ,(lambda (cmd) (when (minibufferp nil t) cmd))))))
-  (when-let ((cmds-del (and (modulep! :completion corfu +tng)
-                            `(menu-item "Reset completion" corfu-reset
-                                       :filter ,(lambda (cmd)
-                                                 (when (and (>= corfu--index 0)
-                                                            (eq corfu-preview-current 'insert))
-                                                   cmd)))))
-             (cmds-ret `(menu-item "Insert completion" corfu-insert
-                                  :filter ,(lambda (cmd)
-                                            (cond ((eq corfu--index -1)
-                                                   (corfu-quit))
-                                                  ((and (modulep! :completion corfu +tng)
-                                                        (eq corfu-preview-current 'insert)
-                                                        (minibufferp nil t))
-                                                   (corfu-insert)
-                                                   nil)
-                                                  (t
-                                                   cmd))))))
+          [remap corfu-insert-separator] #'+corfu-smart-sep-toggle-escape)))
+  (when-let ((cmds-del
+               `(menu-item "Reset completion" corfu-reset
+                  :filter ,(lambda (cmd)
+                             (interactive)
+                             (when (and (>= corfu--index 0)
+                                        (eq corfu-preview-current 'insert))
+                               cmd))))
+             (cmds-ret-pt
+               `(menu-item "Insert completion or pass-through" corfu-insert
+                  :filter ,(lambda (cmd)
+                             (interactive)
+                             (if (>= corfu--index 0)
+                                 cmd
+                               (corfu-quit))))))
     (map! :when (modulep! :completion corfu)
           :after corfu
           :map corfu-map
           [backspace] cmds-del
           "DEL" cmds-del
-          :ig [return] cmds-ret
-          :ig "RET" cmds-ret))
+          (:when (modulep! :completion corfu +on-ret)
+           :gi [return] #'corfu-insert
+           :gi "RET" #'corfu-insert)
+          (:when (modulep! :completion corfu +on-ret-pt)
+           :gi [return] cmds-ret-pt
+           :gi "RET" cmds-ret-pt)
+          (:unless (or (modulep! :completion corfu +on-ret)
+                       (modulep! :completion corfu +on-ret-pt))
+           :gi [return] nil
+           :gi "RET" nil)))
 
   ;; Smarter C-a/C-e for both Emacs and Evil. C-a will jump to indentation.
   ;; Pressing it again will send you to the true bol. Same goes for C-e, except

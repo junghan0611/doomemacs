@@ -162,34 +162,32 @@
       (:when (modulep! :completion corfu)
        (:after corfu
         (:map corfu-mode-map
-         :e "C-M-i" #'completion-at-point
-         (:when +corfu-want-C-x-bindings
-           (:prefix "C-x"
-            :i "C-l" #'cape-line
-            :i "C-k" #'cape-keyword
-            :i "C-f" #'cape-file
-            :i "s"   #'cape-dict
-            :i "C-s" #'yasnippet-capf
-            :i "C-n" #'cape-dabbrev
-            :i "C-p" #'cape-history))
-         (:unless (modulep! :completion corfu +tng)
-          :i "C-SPC" #'completion-at-point
-          :n "C-SPC" (cmd! (call-interactively #'evil-insert-state)
-                           (call-interactively #'completion-at-point))
-          :v "C-SPC" (cmd! (call-interactively #'evil-change)
-                           (call-interactively #'completion-at-point))))
+         :i "C-SPC" #'completion-at-point
+         :n "C-SPC" (cmd! (call-interactively #'evil-insert-state)
+                          (call-interactively #'completion-at-point))
+         :v "C-SPC" (cmd! (call-interactively #'evil-change)
+                          (call-interactively #'completion-at-point)))
         (:map corfu-map
+          "C-SPC" #'corfu-insert-separator
+          "C-k" #'corfu-previous
+          "C-j" #'corfu-next
           "C-u" (cmd! (let (corfu-cycle)
                         (funcall-interactively #'corfu-next (- corfu-count))))
           "C-d" (cmd! (let (corfu-cycle)
                         (funcall-interactively #'corfu-next corfu-count)))))
        (:after corfu-popupinfo
         :map corfu-popupinfo-map
+        "C-h"      #'corfu-popupinfo-toggle
         ;; Reversed because popupinfo assumes opposite of what feels intuitive
         ;; with evil.
-        "C-S-k" #'corfu-popupinfo-scroll-down
-        "C-S-j" #'corfu-popupinfo-scroll-up
-        "C-h"   #'corfu-popupinfo-toggle)))
+        "C-S-k"    #'corfu-popupinfo-scroll-down
+        "C-S-j"    #'corfu-popupinfo-scroll-up
+        "C-<up>"   #'corfu-popupinfo-scroll-down
+        "C-<down>" #'corfu-popupinfo-scroll-up
+        "C-S-p"    #'corfu-popupinfo-scroll-down
+        "C-S-n"    #'corfu-popupinfo-scroll-up
+        "C-S-u"    (cmd! (funcall-interactively #'corfu-popupinfo-scroll-down corfu-popupinfo-min-height))
+        "C-S-d"    (cmd! (funcall-interactively #'corfu-popupinfo-scroll-up corfu-popupinfo-min-height)))))
 
 ;;; :completion (separate)
 (map! (:when (modulep! :completion ivy)

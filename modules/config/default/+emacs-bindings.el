@@ -537,13 +537,6 @@
         "C-p"        #'company-search-repeat-backward
         "C-s"        (cmd! (company-search-abort) (company-filter-candidates))))
 
-      (:when (modulep! :completion corfu)
-       :after corfu
-       (:map corfu-mode-map
-        "C-M-i" #'completion-at-point)
-       (:map corfu-popupinfo-map
-        "C-S-h" #'corfu-popupinfo-toggle))
-
       ;;; ein notebooks
       (:after ein:notebook-multilang
         :map ein:notebook-multilang-mode-map
