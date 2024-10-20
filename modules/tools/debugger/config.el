@@ -110,7 +110,8 @@
 
 
 (use-package! dap-mode
-  :when (and (modulep! +lsp) (not (modulep! :tools lsp +eglot)))
+  :when (modulep! +lsp)
+  :when (modulep! :tools lsp -eglot)
   :hook (dap-mode . dap-tooltip-mode)
   :init
   (setq dap-breakpoints-file (concat doom-data-dir "dap-breakpoints")
@@ -119,7 +120,7 @@
   :config
   (pcase-dolist (`((,category . ,modules) :after ,after :require ,libs)
                  +debugger--dap-alist)
-    (when (doom-module-p category (car modules) (cadr modules))
+    (when (doom-module-active-p category (car modules) (cadr modules))
       (dolist (lib (ensure-list after))
         (with-eval-after-load lib
           (mapc #'require (ensure-list libs))))))
@@ -156,6 +157,7 @@
 
 
 (use-package! dap-ui
-  :when (and (modulep! +lsp) (not (modulep! :tools lsp +eglot)))
+  :when (modulep! +lsp)
+  :when (modulep! :tools lsp -eglot)
   :hook (dap-mode . dap-ui-mode)
   :hook (dap-ui-mode . dap-ui-controls-mode))

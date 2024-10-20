@@ -228,7 +228,6 @@ the return value of the executed CLI."
 ;;
 ;;; Errors
 
-(define-error 'doom-cli-error "There was an unexpected error" 'doom-error)
 (define-error 'doom-cli-definition-error "Invalid CLI definition" 'doom-cli-error)
 (define-error 'doom-cli-autoload-error "Failed to autoload deferred command" 'doom-cli-error)
 (define-error 'doom-cli-invalid-prefix-error "Prefix has no defined commands" 'doom-cli-error)
@@ -1878,7 +1877,7 @@ errors to `doom-cli-error-file')."
   (when doom-cli--context
     (error "Cannot nest `run!' calls"))
   (doom-run-hooks 'doom-after-init-hook)
-  (doom-context-with 'cli
+  (with-doom-context 'cli
     (let* ((args (flatten-list args))
            (context (make-doom-cli-context :prefix prefix :whole args))
            (doom-cli--context context)

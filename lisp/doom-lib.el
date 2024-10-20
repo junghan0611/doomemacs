@@ -4,16 +4,32 @@
 
 ;;; Custom error types
 (define-error 'doom-error "An unexpected Doom error")
-(define-error 'doom-font-error "Could not find a font on your system" 'doom-error)
-(define-error 'doom-nosync-error "Doom hasn't been initialized yet; did you remember to run 'doom sync' in the shell?" 'doom-error)
-(define-error 'doom-core-error "Unexpected error in Doom's core" 'doom-error)
-(define-error 'doom-context-error "Incorrect context error" 'doom-error)
-(define-error 'doom-hook-error "Error in a Doom startup hook" 'doom-error)
-(define-error 'doom-autoload-error "Error in Doom's autoloads file" 'doom-error)
-(define-error 'doom-user-error "Error caused by user's config or system" 'doom-error)
-(define-error 'doom-module-error "Error in a Doom module" 'doom-error)
-(define-error 'doom-package-error "Error with packages" 'doom-error)
-(define-error 'doom-profile-error "Error while processing profiles" 'doom-error)
+(dolist (type '((doom-font-error "Could not find a font on your system" doom-error)
+                (doom-nosync-error "Doom hasn't been initialized yet; did you remember to run 'doom sync' in the shell?" doom-error)
+                (doom-core-error "Unexpected error in Doom's core" doom-error)
+                (doom-cli-error "Unexpected error in Doom's CLI" doom-error)
+                (doom-context-error "Incorrect context error" doom-error)
+                (doom-hook-error "Error in a Doom startup hook" doom-error)
+                (doom-autoload-error "Error in Doom's autoloads file" doom-error)
+                (doom-user-error "Error caused by user's config or system" doom-error)
+                (doom-profile-error "Error while processing profiles" doom-error)
+                (doom-module-error "Error in a Doom module" doom-profile-error)
+                (doom-source-error "Error in a Doom source" doom-profile-error)
+                (doom-package-error "Error with packages" doom-profile-error)))
+  (apply #'define-error type)
+  (fset (car type) (lambda (&rest data) (signal (car type) data))))
+
+(defmacro doom-error (type &rest data)
+  "Signal a Doom error of TYPE with DATA.
+
+TYPE should be a keyword of any of the known doom-*-error errors (e.g. :font,
+:module, etc), or the name of any error."
+  `(signal ,(if (keywordp type)
+                `(quote
+                  ,(or (intern-soft (format "doom-%s-error" (doom-keyword-name type)))
+                       (doom-core-error "Invalid error type" type)))
+              type)
+           (list ,@data)))
 
 
 ;;
@@ -51,7 +67,7 @@
             (unless absolute?
               (append (cons '* (remq t (reverse doom-context)))
                       (if (bound-and-true-p doom-module-context)
-                          (let ((key (doom-module-context-key)))
+                          (let ((key (doom-module-context-key doom-module-context)))
                             (delq nil (list (car key) (cdr key)))))))
             ":")
            args)))
@@ -329,6 +345,7 @@ TRIGGER-HOOK is a list of quoted hooks and/or sharp-quoted functions."
 ;; REVIEW Should I deprecate this? The macro's name is so long...
 (defalias 'letenv! 'with-environment-variables)
 
+(put 'defun* 'lisp-indent-function 'defun)
 (defmacro letf! (bindings &rest body)
   "Temporarily rebind function, macros, and advice in BODY.
 
@@ -616,6 +633,25 @@ See `general-key-dispatch' for what other arguments it accepts in BRANCHES."
 ;; For backwards compatibility
 (defalias 'λ!  #'cmd!)
 (defalias 'λ!! #'cmd!!)
+
+(pcase-defmacro doom-struct (type &rest fields)
+  `(and (pred (cl-struct-p))
+        ;; TODO: Support `&rest', `&key', and `&optional' in FIELDS
+        ,@(mapcar
+           (lambda (field)
+             (let ((offset (cl-struct-slot-offset type field)))
+               `(app (lambda (it)
+                       ,(if offset
+                            `(aref it ,offset)
+                          `(,(intern (format "%s-%s" ',type ',field)) it)))
+                     ,field)))
+           fields)))
+
+(pcase-defmacro doom-module-context (&rest fields)
+  `(doom-struct doom-module-context ,@fields))
+
+(pcase-defmacro doom-module (&rest fields)
+  `(doom-struct doom-module ,@fields))
 
 
 ;;; Mutation
