@@ -33,9 +33,15 @@ Can be changed externally by setting $DOOMPROFILELOADPATH to a colon-delimited
 list of paths or profile config files (semi-colon delimited on Windows).")
 
 (defvar doom-profile-load-file
-  (if-let (loader (getenv-internal "DOOMPROFILELOADFILE"))
-      (expand-file-name loader doom-emacs-dir)
-    (file-name-concat doom-emacs-dir (format "profiles/load.el" emacs-major-version)))
+  ;; REVIEW: Derive from `doom-data-dir' in v3
+  (expand-file-name
+   (format (or (getenv-internal "DOOMPROFILELOADFILE")
+               (file-name-concat (if doom--system-windows-p "doomemacs/data" "doom")
+                                 "profiles.%d.el"))
+           emacs-major-version)
+   (or (if doom--system-windows-p (getenv-internal "LOCALAPPDATA"))
+       (getenv-internal "XDG_DATA_HOME")
+       "~/.local/share"))
   "Where Doom writes its interactive profile loader script.
 
 Can be changed externally by setting $DOOMPROFILELOADFILE.")
@@ -237,12 +243,12 @@ caches them in `doom--profiles'. If RELOAD? is non-nil, refresh the cache."
             ;; `user-emacs-directory' requires that it end in a directory
             ;; separator, but users may forget this in their profile configs.
             (setq user-emacs-directory (file-name-as-directory user-emacs-directory))))
-   :mode #o600
+   :mode (cons #o600 #o700)
    :printfn #'pp)
   (print-group!
     (or (let ((byte-compile-warnings (if init-file-debug byte-compile-warnings))
               (byte-compile-dest-file-function
-               (lambda (_) (format "%s.%d.elc" (file-name-sans-extension file) emacs-major-version))))
+               (lambda (_) (format "%s.elc" (file-name-sans-extension file)))))
           (byte-compile-file file))
         ;; Do it again? So the errors/warnings are visible?
         ;; (let ((byte-compile-warnings t))
@@ -406,7 +412,7 @@ Defaults to the profile at `doom-profile-default'."
               (let ((noextfile (file-name-sans-extension file)))
                 `(with-doom-module ',key
                    ,(pcase key
-                      ('(:core . nil)
+                      ('(:doom . nil)
                        `(doom-load
                          (file-name-concat
                           doom-core-dir ,(file-name-nondirectory noextfile))

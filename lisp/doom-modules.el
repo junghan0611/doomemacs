@@ -159,16 +159,21 @@ Never set this variable directly, use `with-doom-module'.")
 (defmacro with-doom-module (key &rest body)
   "Evaluate BODY with `doom-module-context' informed by KEY."
   (declare (indent 1))
-  `(let ((doom-module-context
-          (let ((key ,key))
-            (cond ((null key) (make-doom-module-context))
-                  ((doom-module-context-p key) key)
-                  ((doom-module-p key) (doom-module->context key))
-                  ((doom-module (car key) (cdr key)))
-                  ((doom-module->context key))
-                  ((error "Invalid module: %S" key))))))
+  `(let ((doom-module-context (doom-module-context ,key)))
      (doom-log ":context:module: =%s" doom-module-context)
      ,@body))
+
+(defun doom-module-context (key)
+  "Return a `doom-module-context' from KEY.
+
+KEY can be a `doom-module-context', `doom-module', or a `doom-module-key' cons
+cell."
+  (declare (side-effect-free t))
+  (or (pcase (type-of key)
+        (`doom-module-context key)
+        (`doom-module (ignore-errors (doom-module->context key)))
+        (`cons (doom-module (car key) (cdr key))))
+      (make-doom-module-context :key (doom-module-key key))))
 
 (defun doom-module<-context (context)
   "Return a `doom-module' plist from CONTEXT."
@@ -177,6 +182,7 @@ Never set this variable directly, use `with-doom-module'.")
 
 (defun doom-module->context (key)
   "Change a `doom-module' into a `doom-module-context'."
+  (declare (side-effect-free t))
   (pcase-let
       (((doom-module index path flags group name)
         (if (doom-module-p key)
@@ -216,7 +222,7 @@ Return its PROPERTY, if specified."
     (setq doom-modules (make-hash-table :test 'equal))
     ;; Register Doom's two virtual module categories, representing Doom's core
     ;; and the user's config; which are always enabled.
-    (doom-module--put '(:core . nil) :path doom-core-dir :depth -110)
+    (doom-module--put '(:doom . nil) :path doom-core-dir :depth -110)
     (doom-module--put '(:user . nil) :path doom-user-dir :depth '(-105 . 105))
     ;; DEPRECATED: I intend to phase out our internal usage of `use-package' and
     ;;   move it to a :config use-package module. The macro is far too complex
@@ -378,7 +384,7 @@ cdr. See `doom-module-put' for details about the :depth property."
 PATHS-OR-ALL can either be a non-nil value or a list of directories. If given a
 list of directories, return a list of module keys for all modules present
 underneath it.  If non-nil, return the same, but search `doom-module-load-path'
-(includes :core and :user). Modules that are enabled are sorted first by their
+(includes :doom and :user). Modules that are enabled are sorted first by their
 :depth, followed by disabled modules in lexicographical order (unless a :depth
 is specified in their .doommodule).
 
@@ -452,9 +458,9 @@ If ENABLED-ONLY?, return nil if the containing module isn't enabled."
                (and (or (null enabled-only?)
                         (doom-module-active-p group name))
                     (cons group name))))
-            ((string-match (concat "^" (regexp-quote doom-core-dir)) path)
-             (cons :core nil))
-            ((string-match (concat "^" (regexp-quote doom-user-dir)) path)
+            ((file-in-directory-p path doom-core-dir)
+             (cons :doom nil))
+            ((file-in-directory-p path doom-user-dir)
              (cons :user nil))))))
 
 (defun doom-module-load-path (&optional module-load-path)
