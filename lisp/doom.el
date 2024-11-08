@@ -378,6 +378,27 @@ which is loaded at startup (if it exists). This is helpful if Emacs can't
 \(easily) be launched from the correct shell session (particularly for MacOS
 users).")
 
+;;; Module file variables
+(defvar doom-module-init-file "init.el"
+  "The filename for module early initialization config files.
+
+Init files are loaded early, just after Doom core, and before modules' config
+files. They are always loaded, even in non-interactive sessions, and before
+`doom-before-modules-init-hook'. Related to `doom-module-config-file'.")
+
+(defvar doom-module-config-file "config.el"
+  "The filename for module configuration files.
+
+Config files are loaded later, and almost always in interactive sessions. These
+run before `doom-after-modules-config-hook' and after `doom-module-init-file'.")
+
+(defvar doom-module-packages-file "packages.el"
+  "The filename for the package configuration file.
+
+Package files are read whenever Doom's package manager wants a manifest of all
+desired packages. They are rarely read in interactive sessions (unless the user
+uses a straight or package.el command directly).")
+
 
 ;;
 ;;; Startup optimizations
@@ -466,35 +487,6 @@ users).")
         (add-hook 'window-setup-hook
                   (doom-partial #'tty-run-terminal-initialization
                                 (selected-frame) nil t))))
-
-    ;; PERF: `load-suffixes' and `load-file-rep-suffixes' are consulted on each
-    ;;   `require' and `load'. Doom won't load any modules this early, so I omit
-    ;;   *.so for a tiny startup boost. Is later restored in `doom-start'.
-    (put 'load-suffixes 'initial-value (default-toplevel-value 'load-suffixes))
-    (put 'load-file-rep-suffixes 'initial-value (default-toplevel-value 'load-file-rep-suffixes))
-    (set-default-toplevel-value 'load-suffixes '(".elc" ".el"))
-    (set-default-toplevel-value 'load-file-rep-suffixes '(""))
-    ;; COMPAT: Undo any problematic startup optimizations eventually, to prevent
-    ;;   incompatibilities with anything loaded in userland.
-    (add-hook! 'doom-before-init-hook
-      (defun doom--reset-load-suffixes-h ()
-        (setq load-suffixes (get 'load-suffixes 'initial-value)
-              load-file-rep-suffixes (get 'load-file-rep-suffixes 'initial-value))))
-
-    ;; PERF: Doom uses `defcustom' merely to announce variables that users may
-    ;;   reconfigure. Trouble is it fires off initializers meant to accommodate
-    ;;   any user attempts to configure them *before* they are defined, which
-    ;;   isn't possible since the user's first opportunity to modify them comes
-    ;;   long after they're defined (in $DOOMDIR/init.el), so this is
-    ;;   unnecessary work. To spare Emacs the startup time, I disable this
-    ;;   behavior until $DOOMDIR is loaded.
-    (setq custom-dont-initialize t)
-    (add-hook! 'doom-before-init-hook
-      (defun doom--reset-custom-dont-initialize-h ()
-        (setq custom-dont-initialize nil)))
-    (define-advice command-line-1 (:around (fn args-left) respect-defcustom-setters)
-      (let ((custom-dont-initialize nil))
-        (funcall fn args-left)))
 
     ;; These optimizations are brittle, difficult to debug, and obscure other
     ;; issues, so bow out when debug mode is on.
