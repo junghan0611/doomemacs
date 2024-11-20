@@ -175,7 +175,10 @@
   (make-obsolete-variable 'EMACS28+   "Use (>= emacs-major-version 28) instead" "3.0.0")
   (make-obsolete-variable 'EMACS29+   "Use (>= emacs-major-version 29) instead" "3.0.0")
   (make-obsolete-variable 'MODULES    "Use (featurep 'dynamic-modules) instead" "3.0.0")
-  (make-obsolete-variable 'NATIVECOMP "Use (featurep 'native-compile) instead" "3.0.0"))
+  (make-obsolete-variable 'NATIVECOMP "Use (featurep 'native-compile) instead" "3.0.0")
+
+  (define-obsolete-variable-alias 'doom-private-dir 'doom-user-dir "3.0.0")
+  (define-obsolete-variable-alias 'doom-etc-dir 'doom-data-dir "3.0.0"))
 
 ;; HACK: Silence obnoxious obsoletion warnings about (if|when)-let in >=31.
 ;;   These warnings are unhelpful to end-users, and so, so many packages use
@@ -240,7 +243,6 @@
 (defvar doom-modules-dir (expand-file-name "modules/" doom-emacs-dir)
   "The root directory for Doom's modules. Must end with a slash.")
 
-(define-obsolete-variable-alias 'doom-private-dir 'doom-user-dir "3.0.0")
 (defvar doom-user-dir
   (expand-file-name
    (if-let (doomdir (getenv-internal "DOOMDIR"))
@@ -289,7 +291,6 @@ Use this as a storage location for this system's installation of Doom Emacs.
 These files should not be shared across systems. By default, it is used by
 `doom-data-dir' and `doom-cache-dir'. Must end with a slash.")
 
-(define-obsolete-variable-alias 'doom-etc-dir 'doom-data-dir "3.0.0")
 (defvar doom-data-dir
   (if doom-profile
       (if doom--system-windows-p
@@ -553,6 +554,17 @@ uses a straight or package.el command directly).")
 
 ;;
 ;;; Reasonable, global defaults
+
+;;; CLI settings
+(when noninteractive
+  ;; Don't generate superfluous files when writing temp buffers.
+  (setq make-backup-files nil)
+  ;; Stop user config from interfering with package management.
+  (setq enable-dir-local-variables nil)
+  ;; Reduce ambiguity, embrace specificity, enjoy predictability.
+  (setq case-fold-search nil)
+  ;; Don't clog the user's trash with our CLI refuse.
+  (setq delete-by-moving-to-trash nil))
 
 ;;; Don't litter `doom-emacs-dir'/$HOME
 ;; HACK: I change `user-emacs-directory' because many packages (even built-in
